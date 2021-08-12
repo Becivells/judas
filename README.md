@@ -37,8 +37,8 @@ Usage of judas:
 Building
 --------
 To build `judas`, simply run `go build`.
- ```
- go build cmd/judas.go
+ ```shell
+ make build
  ```
 
 

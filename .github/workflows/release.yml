@@ -30,7 +30,6 @@ jobs:
         name: Tests
         run: |
           go mod tidy
-          go test -v ./test
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
