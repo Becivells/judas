@@ -201,3 +201,7 @@ go build -buildmode=plugin examples/searchloggingplugin/searchloggingplugin.go
 ** 解决 cookie 跨域导致无法登录   
 ### 注意
 1. 使用域名或者特定的IP 不要使 0.0.0.0 这类
+
+##  待做功能
+1. 域名绑定
+支持多个目标
