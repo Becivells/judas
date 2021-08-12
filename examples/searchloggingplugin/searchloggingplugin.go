@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/joncooperworks/judas"
+	"github.com/becivells/judas"
 )
 
 type searchLoggingPlugin struct {

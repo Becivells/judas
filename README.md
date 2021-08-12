@@ -1,9 +1,7 @@
 Judas
 =====
-Judas is a pluggable phishing proxy.
-It can clone any website passed to it using command line flags, and you can extend it with Go plugins for fun and (legal) profit.
-Judas is meant to be used in red team phishing exercises to phish victims without them being able to notice.
-When combined with effective typosquatting, Judas is unstoppable.
+Judas 是一个可扩展化的钓鱼代理.
+通过快速克隆任意网站。在任意网站中植入钓鱼 js 进行钓鱼。本项目克隆自 [JonCooperWorks/judas](https://github.com/JonCooperWorks/judas)。并对其进行稍微修改
 
 ```
 Usage of judas:

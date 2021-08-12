@@ -6,7 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/joncooperworks/judas"
+	"github.com/becivells/judas"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,6 +18,11 @@ import (
 )
 
 var (
+	Version        = "unknown"
+	Commit         = "unknown"
+	Date           = "unknown"
+	Branch         = "unknown"
+	sv             = flag.Bool("v", false, "show version")
 	targetURL      = flag.String("target", "", "The website we want to phish.")
 	address        = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
 	attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
@@ -33,6 +38,13 @@ var (
 	injectURL      = flag.String("inject-url", "*", "target URL to a JavaScript file you want injected. default * is all")
 )
 
+func showVersion() {
+	fmt.Printf("Current Version: %s\n", Version)
+	fmt.Printf("Current branch: %s\n", Branch)
+	fmt.Printf("Current commit: %s\n", Commit)
+	fmt.Printf("Current date: %s\n", Date)
+	os.Exit(0)
+}
 func exitWithError(message string) {
 	log.Println(message)
 	os.Exit(-1)
@@ -40,6 +52,9 @@ func exitWithError(message string) {
 
 func setupRequiredFlags() {
 	flag.Parse()
+	if *sv {
+		showVersion()
+	}
 	if *address == "" {
 		exitWithError("--address is required.")
 	}
