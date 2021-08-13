@@ -17,10 +17,11 @@ type Config struct {
 }
 
 type ReverseConfig struct {
-	Address      string
-	Port         int
-	CookieDomain string
-	InjectURLs   []string
-	OnlyDomain   bool
-	DumpURL      []string
+	Address        string
+	Port           int
+	CookieDomain   string
+	InjectURLs     []string
+	OnlyDomain     bool
+	DumpURL        []string
+	CookieHttpOnly bool
 }

