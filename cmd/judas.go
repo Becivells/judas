@@ -35,7 +35,8 @@ var (
 	sslHostname    = flag.String("ssl-hostname", "", "Hostname for SSL certificate")
 	pluginPaths    = flag.String("plugins", "", "Colon separated file path to plugin binaries.")
 	cookiesDomain  = flag.String("cookie-domain", "", "set Cookies Domain")
-	injectURL      = flag.String("inject-url", "*", "target URL to a JavaScript file you want injected. default * is all")
+	injectURL      = flag.String("inject-url", "*", "target URL to a JavaScript file you want injected. default * is all ',' split")
+	dumpURL        = flag.String("dump-url", "*", "dump request URL * is no dump")
 )
 
 func showVersion() {
@@ -81,6 +82,7 @@ func getReverse(ReverseAddress string) (*judas.ReverseConfig, error) {
 			Port:         port,
 			CookieDomain: *cookiesDomain,
 			InjectURLs:   strings.Split(*injectURL, ","),
+			DumpURL:      strings.Split(*dumpURL, ","),
 		}, nil
 	}
 	return nil, errors.New("不支持ipv6")

@@ -22,4 +22,5 @@ type ReverseConfig struct {
 	CookieDomain string
 	InjectURLs   []string
 	OnlyDomain   bool
+	DumpURL      []string
 }
