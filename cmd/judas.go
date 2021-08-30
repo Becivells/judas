@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -177,6 +178,14 @@ func main() {
 			InsecureSkipVerify: *insecure,
 			RootCAs:            rootCAs,
 		},
+		DialContext: (&net.Dialer{
+			Timeout:   60 * time.Second, //连接超时
+			KeepAlive: 30 * time.Second, //长连接超时时间
+		}).DialContext,
+		MaxIdleConns:          100,               //最大空闲连接
+		IdleConnTimeout:       120 * time.Second, //空闲超时时间
+		TLSHandshakeTimeout:   10 * time.Second,  //tls握手超时时间
+		ExpectContinueTimeout: 1 * time.Second,   //100-continue 超时时间
 	}
 
 	if *proxyURL != "" {
